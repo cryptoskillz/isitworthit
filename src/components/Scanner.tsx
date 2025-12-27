@@ -10,20 +10,16 @@ interface ScannerProps {
 
 const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
-    const scannerId = "reader-camera"; // Fixed ID but we'll ensure clean DOM
 
     useEffect(() => {
-        // Clear any existing scanner DOM content before starting
-        const element = document.getElementById(scannerId);
-        if (element) element.innerHTML = "";
-
-        // Initialize scanner
+        // Initialize scanner - EXACT ORIGINAL LOGIC
         const scanner = new Html5QrcodeScanner(
-            scannerId,
+            "reader",
             {
-                fps: 5, // Lower FPS to reduce pressure
+                fps: 10,
                 qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
+                aspectRatio: 1.0,
+                rememberLastUsedCamera: true
             },
             /* verbose= */ false
         );
@@ -35,6 +31,8 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
                 });
             },
             (_errorMessage) => {
+                // scan failure is very common (every frame no code is found)
+                // so we don't spam errors
                 // console.debug(errorMessage);
             }
         );
@@ -43,10 +41,7 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
 
         return () => {
             if (scannerRef.current) {
-                // Critical: Catch cleanup errors to prevent unhandled promise rejections
-                scannerRef.current.clear().catch(err => {
-                    console.warn("Scanner cleanup failed", err);
-                });
+                scannerRef.current.clear().catch(err => console.error("Failed to clear scanner", err));
             }
         };
     }, [onScanSuccess]);
@@ -56,17 +51,17 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
             {/* Retro Pattern Overlay */}
             <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
 
-            {/* Critical: Apply styles to the ID we use */}
+            {/* Custom Styles for the Library UI */}
             <style>{`
-                #${scannerId} {
+                #reader {
                     border: none !important;
                 }
-                #${scannerId}__scan_region {
+                #reader__scan_region {
                     background: rgba(0,0,0,0.1);
                     border: 4px solid white !important;
                     border-radius: 8px;
                 }
-                #${scannerId}__dashboard_section_csr button {
+                #reader__dashboard_section_csr button {
                     font-family: 'Press Start 2P', system-ui !important;
                     background-color: #4ade80 !important;
                     color: black !important;
@@ -78,11 +73,11 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
                     cursor: pointer !important;
                     margin-bottom: 10px !important;
                 }
-                #${scannerId}__dashboard_section_csr button:active {
+                #reader__dashboard_section_csr button:active {
                     transform: translateY(2px) !important;
                     box-shadow: none !important;
                 }
-                #${scannerId}__dashboard_section_swaplink {
+                #reader__dashboard_section_swaplink {
                     text-decoration: none !important;
                     color: white !important;
                     border: 2px solid black !important;
@@ -93,7 +88,7 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
                     display: inline-block !important;
                     margin-top: 10px !important;
                 }
-                #${scannerId}__camera_selection {
+                #reader__camera_selection {
                     font-family: 'Press Start 2P', system-ui !important;
                     font-size: 8px !important;
                     padding: 5px !important;
@@ -120,7 +115,7 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
 
                 <div className="relative p-2 bg-black/10 border-4 border-black rounded-lg shadow-[8px_8px_0_rgba(0,0,0,0.5)]">
                     {/* Reader Container */}
-                    <div id={scannerId} className="w-full bg-transparent"></div>
+                    <div id="reader" className="w-full bg-transparent"></div>
                 </div>
 
                 <p className="text-white text-center mt-6 text-[10px] leading-relaxed drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">
