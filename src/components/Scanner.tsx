@@ -20,22 +20,11 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
             const html5QrCode = new Html5Qrcode("scanner-view");
             scannerRef.current = html5QrCode;
 
-            const devices = await Html5Qrcode.getCameras();
-            let cameraId = null;
-
-            if (devices && devices.length) {
-                const backCamera = devices.find(device =>
-                    device.label.toLowerCase().includes('back') ||
-                    device.label.toLowerCase().includes('environment')
-                );
-                cameraId = backCamera ? backCamera.id : devices[0].id;
-            }
-
             const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-            const cameraConfig = cameraId ? { deviceId: { exact: cameraId } } : { facingMode: "environment" };
 
+            // Use standard facingMode constraint which is more robust than explicit deviceId
             await html5QrCode.start(
-                cameraConfig,
+                { facingMode: "environment" },
                 config,
                 (decodedText) => {
                     if (html5QrCode.isScanning) {
@@ -53,8 +42,11 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
             console.error("Error starting scanner:", err);
             if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
                 setPermissionError("Camera access denied. Please allow camera permissions.");
+            } else if (err.name === 'NotFoundError') {
+                setPermissionError("No back camera found.");
             } else {
-                setPermissionError("Camera failed to start.");
+                // Show specific error name for debugging (e.g. OverconstrainedError)
+                setPermissionError(`Camera start failed: ${err.name || err.message}`);
             }
             setIsScanning(false);
         }
