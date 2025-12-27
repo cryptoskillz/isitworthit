@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Play, Search, Scan, Utensils, ChevronRight } from 'lucide-react';
@@ -114,7 +114,7 @@ const Welcome = () => {
     const [error, setError] = useState('');
     const [searchResults, setSearchResults] = useState<ProductData[]>([]);
 
-    const handleScanSuccess = useMemo(() => async (decodedText: string) => {
+    const handleScanSuccess = useCallback(async (decodedText: string) => {
         setIsScanning(false);
         setLoading(true);
         setError('');
