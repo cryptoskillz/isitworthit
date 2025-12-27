@@ -17,7 +17,7 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
     const startScanner = async () => {
         try {
             setPermissionError('');
-            const html5QrCode = new Html5Qrcode("reader");
+            const html5QrCode = new Html5Qrcode("scanner-view");
             scannerRef.current = html5QrCode;
 
             const devices = await Html5Qrcode.getCameras();
@@ -110,8 +110,11 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
                             </button>
                         )}
 
-                        {/* Reader Container */}
-                        <div id="reader" className="w-full h-full bg-black border-4 border-white/20 overflow-hidden rounded-sm"></div>
+                        {/* Reader Container - Hidden until active to prevent "Request permissions" text */}
+                        <div
+                            id="scanner-view"
+                            className={`w-full h-full bg-black border-4 border-white/20 overflow-hidden rounded-sm ${!isScanning ? 'opacity-0' : 'opacity-100'}`}
+                        ></div>
 
                         {/* Retro Viewfinder Overlay */}
                         {isScanning && (
