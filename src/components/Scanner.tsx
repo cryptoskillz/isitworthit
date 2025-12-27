@@ -18,11 +18,7 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
             {
                 fps: 10,
                 qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0,
-                // Attempt to default to environment (back) camera
-                videoConstraints: {
-                    facingMode: "environment"
-                }
+                aspectRatio: 1.0
             },
       /* verbose= */ false
         );
