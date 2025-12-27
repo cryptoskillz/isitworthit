@@ -1,0 +1,17 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@layer base {
+  body {
+    @apply bg-dark text-white font-sans antialiased;
+  }
+}
+
+/* Custom premium aesthetic touches */
+.glass-panel {
+  @apply bg-dark-card/80 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl;
+}
+
+.btn-primary {
+  @apply bg-primary hover:bg-primary/90 text-white font-bold py-3 px-6 rounded-xl transition-all active:scale-95 shadow-lg shadow-primary/20;
+}
