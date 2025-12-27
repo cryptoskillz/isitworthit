@@ -10,14 +10,18 @@ interface ScannerProps {
 
 const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+    const scannerId = "reader-camera"; // Fixed ID but we'll ensure clean DOM
 
     useEffect(() => {
-        // Initialize scanner with library UI - STRICTLY DEFAULT BEHAVIOR
-        // No constraints, no fancy detection, just let the library list cameras.
+        // Clear any existing scanner DOM content before starting
+        const element = document.getElementById(scannerId);
+        if (element) element.innerHTML = "";
+
+        // Initialize scanner
         const scanner = new Html5QrcodeScanner(
-            "reader",
+            scannerId,
             {
-                fps: 10,
+                fps: 5, // Lower FPS to reduce pressure
                 qrbox: { width: 250, height: 250 },
                 aspectRatio: 1.0
             },
@@ -39,7 +43,10 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
 
         return () => {
             if (scannerRef.current) {
-                scannerRef.current.clear().catch(err => console.warn("Scanner clear error", err));
+                // Critical: Catch cleanup errors to prevent unhandled promise rejections
+                scannerRef.current.clear().catch(err => {
+                    console.warn("Scanner cleanup failed", err);
+                });
             }
         };
     }, [onScanSuccess]);
@@ -49,17 +56,17 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
             {/* Retro Pattern Overlay */}
             <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
 
-            {/* Custom Styles for the Library UI */}
+            {/* Critical: Apply styles to the ID we use */}
             <style>{`
-                #reader {
+                #${scannerId} {
                     border: none !important;
                 }
-                #reader__scan_region {
+                #${scannerId}__scan_region {
                     background: rgba(0,0,0,0.1);
                     border: 4px solid white !important;
                     border-radius: 8px;
                 }
-                #reader__dashboard_section_csr button {
+                #${scannerId}__dashboard_section_csr button {
                     font-family: 'Press Start 2P', system-ui !important;
                     background-color: #4ade80 !important;
                     color: black !important;
@@ -71,11 +78,11 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
                     cursor: pointer !important;
                     margin-bottom: 10px !important;
                 }
-                #reader__dashboard_section_csr button:active {
+                #${scannerId}__dashboard_section_csr button:active {
                     transform: translateY(2px) !important;
                     box-shadow: none !important;
                 }
-                #reader__dashboard_section_swaplink {
+                #${scannerId}__dashboard_section_swaplink {
                     text-decoration: none !important;
                     color: white !important;
                     border: 2px solid black !important;
@@ -86,7 +93,7 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
                     display: inline-block !important;
                     margin-top: 10px !important;
                 }
-                #reader__camera_selection {
+                #${scannerId}__camera_selection {
                     font-family: 'Press Start 2P', system-ui !important;
                     font-size: 8px !important;
                     padding: 5px !important;
@@ -113,7 +120,7 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
 
                 <div className="relative p-2 bg-black/10 border-4 border-black rounded-lg shadow-[8px_8px_0_rgba(0,0,0,0.5)]">
                     {/* Reader Container */}
-                    <div id="reader" className="w-full bg-transparent"></div>
+                    <div id={scannerId} className="w-full bg-transparent"></div>
                 </div>
 
                 <p className="text-white text-center mt-6 text-[10px] leading-relaxed drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">
