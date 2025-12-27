@@ -114,7 +114,7 @@ const Welcome = () => {
     const [error, setError] = useState('');
     const [searchResults, setSearchResults] = useState<ProductData[]>([]);
 
-    const handleScanSuccess = async (decodedText: string) => {
+    const handleScanSuccess = useMemo(() => async (decodedText: string) => {
         setIsScanning(false);
         setLoading(true);
         setError('');
@@ -132,7 +132,7 @@ const Welcome = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [navigate]);
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();

@@ -10,16 +10,20 @@ interface ScannerProps {
 
 const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
+    const successRef = useRef(onScanSuccess);
+
+    // Update the ref whenever the prop changes without re-triggering the scanner
+    useEffect(() => {
+        successRef.current = onScanSuccess;
+    }, [onScanSuccess]);
 
     useEffect(() => {
-        // Initialize scanner - EXACT ORIGINAL LOGIC
+        // Absolute baseline setup
         const scanner = new Html5QrcodeScanner(
             "reader",
             {
                 fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0,
-                rememberLastUsedCamera: true
+                qrbox: 250
             },
             /* verbose= */ false
         );
@@ -27,13 +31,14 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
         scanner.render(
             (decodedText) => {
                 scanner.clear().then(() => {
-                    onScanSuccess(decodedText);
+                    successRef.current(decodedText);
+                }).catch(err => {
+                    console.error("Clear failed", err);
+                    successRef.current(decodedText);
                 });
             },
             (_errorMessage) => {
-                // scan failure is very common (every frame no code is found)
-                // so we don't spam errors
-                // console.debug(errorMessage);
+                // Ignore failure frames
             }
         );
 
@@ -41,10 +46,10 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
 
         return () => {
             if (scannerRef.current) {
-                scannerRef.current.clear().catch(err => console.error("Failed to clear scanner", err));
+                scannerRef.current.clear().catch(err => console.warn("Cleanup clear failed", err));
             }
         };
-    }, [onScanSuccess]);
+    }, []); // Empty dependency array: ONLY INIT ONCE
 
     return (
         <div className="fixed inset-0 z-50 bg-sky-400 font-['Press_Start_2P'] flex flex-col items-center justify-center">
