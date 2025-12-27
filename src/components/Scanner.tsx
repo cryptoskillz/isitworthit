@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { Html5Qrcode } from 'html5-qrcode';
-import { X, CameraOff } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
+import { X } from 'lucide-react';
 
 interface ScannerProps {
     onScanSuccess: (decodedText: string) => void;
@@ -9,64 +9,98 @@ interface ScannerProps {
 }
 
 const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const scannerRef = useRef<any | null>(null);
-    const [permissionError, setPermissionError] = useState('');
-    const [isScanning, setIsScanning] = useState(false);
-
-    const startScanner = async () => {
-        try {
-            setPermissionError('');
-            const html5QrCode = new Html5Qrcode("scanner-view");
-            scannerRef.current = html5QrCode;
-
-            const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
-
-            // Use standard facingMode constraint which is more robust than explicit deviceId
-            await html5QrCode.start(
-                { facingMode: "environment" },
-                config,
-                (decodedText) => {
-                    if (html5QrCode.isScanning) {
-                        html5QrCode.stop().then(() => {
-                            onScanSuccess(decodedText);
-                        }).catch(err => console.error("Failed to stop scanner", err));
-                    }
-                },
-                (_errorMessage) => {
-                    // ignore
-                }
-            );
-            setIsScanning(true);
-        } catch (err: any) {
-            console.error("Error starting scanner:", err);
-            if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-                setPermissionError("Camera access denied. Please allow camera permissions.");
-            } else if (err.name === 'NotFoundError') {
-                setPermissionError("No back camera found.");
-            } else {
-                // Show specific error name for debugging (e.g. OverconstrainedError)
-                setPermissionError(`Camera start failed: ${err.name || err.message}`);
-            }
-            setIsScanning(false);
-        }
-    };
+    const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
     useEffect(() => {
-        // Try auto-start on mount
-        startScanner();
+        // Initialize scanner with library UI
+        const scanner = new Html5QrcodeScanner(
+            "reader",
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0,
+                // Attempt to default to environment (back) camera
+                videoConstraints: {
+                    facingMode: "environment"
+                }
+            },
+      /* verbose= */ false
+        );
+
+        scanner.render(
+            (decodedText) => {
+                scanner.clear().then(() => {
+                    onScanSuccess(decodedText);
+                });
+            },
+            (_errorMessage) => {
+                // console.debug(errorMessage);
+            }
+        );
+
+        scannerRef.current = scanner;
 
         return () => {
-            if (scannerRef.current && scannerRef.current.isScanning) {
-                scannerRef.current.stop().catch((err: any) => console.error("Failed to stop scanner cleanup", err));
+            if (scannerRef.current) {
+                scannerRef.current.clear().catch(err => console.error("Failed to default clear scanner", err));
             }
         };
-    }, []);
+    }, [onScanSuccess]);
 
     return (
         <div className="fixed inset-0 z-50 bg-sky-400 font-['Press_Start_2P'] flex flex-col items-center justify-center">
             {/* Retro Pattern Overlay */}
             <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] pointer-events-none"></div>
+
+            {/* Custom Styles for the Library UI */}
+            <style>{`
+                #reader {
+                    border: none !important;
+                }
+                #reader__scan_region {
+                    background: rgba(0,0,0,0.1);
+                    border: 4px solid white !important;
+                    border-radius: 8px;
+                }
+                #reader__dashboard_section_csr button {
+                    font-family: 'Press Start 2P', system-ui !important;
+                    background-color: #4ade80 !important;
+                    color: black !important;
+                    border: 4px solid black !important;
+                    padding: 10px 20px !important;
+                    font-size: 10px !important;
+                    text-transform: uppercase !important;
+                    box-shadow: 4px 4px 0 rgba(0,0,0,1) !important;
+                    cursor: pointer !important;
+                    margin-bottom: 10px !important;
+                }
+                #reader__dashboard_section_csr button:active {
+                    transform: translateY(2px) !important;
+                    box-shadow: none !important;
+                }
+                #reader__dashboard_section_swaplink {
+                    text-decoration: none !important;
+                    color: white !important;
+                    border: 2px solid black !important;
+                    background: #3b82f6 !important;
+                    padding: 5px 10px !important;
+                    font-size: 8px !important;
+                    box-shadow: 2px 2px 0 rgba(0,0,0,1) !important;
+                    display: inline-block !important;
+                    margin-top: 10px !important;
+                }
+                #reader__camera_selection {
+                    font-family: 'Press Start 2P', system-ui !important;
+                    font-size: 8px !important;
+                    padding: 5px !important;
+                    border: 4px solid black !important;
+                    margin-bottom: 10px !important;
+                }
+                span {
+                    color: white !important;
+                    text-shadow: 2px 2px 0 #000 !important;
+                }
+            `}</style>
 
             <button
                 onClick={onClose}
@@ -75,50 +109,15 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
                 <X size={24} className="text-white drop-shadow-[2px_2px_0_rgba(0,0,0,0.5)]" />
             </button>
 
-            <div className="w-full max-w-sm px-6 relative z-10 flex flex-col items-center">
+            <div className="w-full max-w-sm px-6 relative z-10">
                 <h2 className="text-white text-center mb-6 text-sm leading-relaxed drop-shadow-[4px_4px_0_rgba(0,0,0,1)]">
                     ALIGN BARCODE
                 </h2>
 
-                {permissionError ? (
-                    <div className="bg-red-500 border-4 border-black p-4 text-white text-[10px] text-center shadow-[4px_4px_0_rgba(0,0,0,0.5)] flex flex-col items-center gap-4">
-                        <CameraOff size={32} />
-                        <p>{permissionError}</p>
-                        <button
-                            onClick={startScanner}
-                            className="bg-white text-black border-2 border-black px-4 py-2 mt-2 text-[10px] uppercase hover:bg-gray-200"
-                        >
-                            Retry
-                        </button>
-                    </div>
-                ) : (
-                    <div className="relative p-2 bg-black/10 border-4 border-black rounded-lg shadow-[8px_8px_0_rgba(0,0,0,0.5)] w-full aspect-square flex items-center justify-center">
-                        {!isScanning && (
-                            <button
-                                onClick={startScanner}
-                                className="absolute z-20 bg-[#4ade80] border-4 border-black px-6 py-4 text-xs font-bold shadow-[4px_4px_0_rgba(0,0,0,1)] hover:scale-105 active:translate-y-[2px] active:shadow-none transition-all uppercase"
-                            >
-                                Start Camera
-                            </button>
-                        )}
-
-                        {/* Reader Container - Hidden until active to prevent "Request permissions" text */}
-                        <div
-                            id="scanner-view"
-                            className={`w-full h-full bg-black border-4 border-white/20 overflow-hidden rounded-sm ${!isScanning ? 'opacity-0' : 'opacity-100'}`}
-                        ></div>
-
-                        {/* Retro Viewfinder Overlay */}
-                        {isScanning && (
-                            <div className="absolute inset-0 pointer-events-none border-[6px] border-transparent z-10">
-                                <div className="absolute top-0 left-0 w-8 h-8 border-t-8 border-l-8 border-[#3b82f6]"></div>
-                                <div className="absolute top-0 right-0 w-8 h-8 border-t-8 border-r-8 border-[#3b82f6]"></div>
-                                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-8 border-l-8 border-[#3b82f6]"></div>
-                                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-8 border-r-8 border-[#3b82f6]"></div>
-                            </div>
-                        )}
-                    </div>
-                )}
+                <div className="relative p-2 bg-black/10 border-4 border-black rounded-lg shadow-[8px_8px_0_rgba(0,0,0,0.5)]">
+                    {/* Reader Container */}
+                    <div id="reader" className="w-full bg-transparent"></div>
+                </div>
 
                 <p className="text-white text-center mt-6 text-[10px] leading-relaxed drop-shadow-[2px_2px_0_rgba(0,0,0,1)]">
                     POINT CAMERA AT FOOD LABEL
