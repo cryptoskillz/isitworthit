@@ -12,33 +12,50 @@ const Scanner = ({ onScanSuccess, onClose }: ScannerProps) => {
     const scannerRef = useRef<Html5QrcodeScanner | null>(null);
 
     useEffect(() => {
-        // Initialize scanner with library UI
-        const scanner = new Html5QrcodeScanner(
-            "reader",
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 250 },
-                aspectRatio: 1.0
-            },
-      /* verbose= */ false
-        );
+        let isMounted = true;
 
-        scanner.render(
-            (decodedText) => {
-                scanner.clear().then(() => {
-                    onScanSuccess(decodedText);
-                });
-            },
-            (_errorMessage) => {
-                // console.debug(errorMessage);
-            }
-        );
+        // Small delay to ensure previous instance (if strict mode) has cleared
+        const initTimer = setTimeout(() => {
+            if (!isMounted) return;
 
-        scannerRef.current = scanner;
+            // Initialize scanner with library UI
+            const scanner = new Html5QrcodeScanner(
+                "reader",
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0,
+                    rememberLastUsedCamera: true
+                },
+                /* verbose= */ false
+            );
+
+            scanner.render(
+                (decodedText) => {
+                    if (!isMounted) return;
+                    // Pause immediately to prevent multiple scans
+                    scanner.pause();
+
+                    // Clear and notify
+                    scanner.clear().then(() => {
+                        onScanSuccess(decodedText);
+                    }).catch(err => console.error("Failed to clear scanner on success", err));
+                },
+                (_errorMessage) => {
+                    // console.debug(errorMessage);
+                }
+            );
+
+            scannerRef.current = scanner;
+        }, 300); // 300ms delay to allow camera release
 
         return () => {
+            isMounted = false;
+            clearTimeout(initTimer);
             if (scannerRef.current) {
-                scannerRef.current.clear().catch(err => console.error("Failed to default clear scanner", err));
+                // Attempt to clear, even if it fails it's better to try
+                scannerRef.current.clear().catch(err => console.warn("Scanner clear error on cleanup", err));
+                scannerRef.current = null;
             }
         };
     }, [onScanSuccess]);
